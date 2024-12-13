@@ -1,31 +1,30 @@
-# Cron Schedule Editor
+# Cron Schedule Creator
 
-Imagine there’s a service that runs a specific task on a CRON schedule. While the service works fine, CRON expressions are hard to use because they require knowledge of a complex and uncommon syntax. Although CRON allows for highly flexible schedules, most users only need a few basic options.
+A React-based application to create and manage CRON expressions effortlessly. The app provides a user-friendly interface to select specific schedules and converts them into valid CRON expressions.
 
-Your task is to create a simple, user-friendly UI that makes editing schedules easy. This UI should hide the complexity of CRON expressions under the hood, so users don’t need to worry about it.
+## Features
 
-The UI must allow saving its configuration as a CRON expression and load it back from one. However, users don’t need to know that CRON is used behind the scenes.
+- **Every X Minutes:** Schedule tasks to run every X minutes.
+- **Specific Times on Specific Days:** Choose specific hours on selected days of the week.
+- **Specific Times Every Day:** Schedule tasks to run at specific hours every day.
+- **Specific Days of the Month:** Choose specific days of the month to run tasks.
+- Real-time validation and creation of CRON expressions.
+- Interactive UI built with React and Tailwind CSS.
 
-The UI should support these common scheduling types:
+## Technologies Used
 
-Run every X minutes.
+- **React**: Frontend framework.
+- **Tailwind CSS**: For styling.
+- **JavaScript (Vite)**: For building and running the app.
 
-Run at specific times on selected days of the week (e.g., at 14:30).
+## Getting Started
 
-Run at one or two specific times every day.
+### Prerequisites
+- Node.js (v18+ recommended)
+- npm or yarn
 
-Run on specific days of the month (details can be planned).
+### Installation
 
-
-## install
-
-```sh
-$ npm i
-```
-
-## run
-
-```sh
-$ npm start
-```
->>>>>>> a78b788 (create cron schedule editor)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Samu2196/cron-scheduler.git
