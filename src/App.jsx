@@ -38,6 +38,7 @@ function App() {
           <Container className='mb-4'>
             <Label className='block text-gray-700 font-medium mb-2'>Every (minutes):</Label>
             <input type='number'
+              placeholder='1'
               value={scheduleData.timeInterval}
               onChange={(e) => setScheduleData({ ...scheduleData, timeInterval: e.target.value })}
               className='w-full border bg-neutral-300 text-black rounded-lg px-3 py-2'
@@ -95,14 +96,14 @@ function App() {
                   }}
                   className='w-full border text-black bg-neutral-300 rounded-lg px-3 py-2'
                 />
-                <Button
+                {scheduleData.times.length > 1 && <Button
                   onClick={() => {
                     const newTimes = scheduleData.times.filter((_, i) => i !== index)
                     setScheduleData({ ...scheduleData, times: newTimes })
                   }}
                   className='ml-2 bg-red-500 text-white rounded-lg w-20 font-medium border border-black hover:text-red-700'
                 >Delete
-                </Button>
+                </Button>}
               </Container>
             ))}
             <Button
@@ -160,6 +161,15 @@ function App() {
   }
 
   const hanleLoadCron = () => {
+
+    if (!cronExpression.trim()) {
+      showAlert(
+        'Please enter a CRON expression',
+        () => {
+          setAlert({ ...alert, visible })
+        })
+    }
+
     const validCron = loadCronIntoSchedule(cronExpression)
 
     if (!validCron) {
@@ -249,22 +259,26 @@ function App() {
 
       const [minute, hour, dayOfMonth, month, dayOfWeek] = cronParts
 
+      // Every X minutes
       if (minute.startsWith('*/') && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
-        setScheduleData('everyXMinutes')
-        setScheduleData({ ...scheduleData, timeInterval: parseInt(minute.replace('*/', ''), 10) })
+        const timeInterval = parseInt(minute.replace('*/', ''), 10)
+        setScheduleType('everyXMinutes')
+        setScheduleData({ timeInterval })
         return true
       }
 
+      // Specific times in a week
       if (dayOfWeek !== '*' && dayOfMonth === '*' && month === '*') {
         const daysOfWeek = dayOfWeek.split(',').map(Number)
 
         const times = hour.split(',').map((h, i) => `${h}:${minute.split(',')[i]}`)
 
         setScheduleType('specificTimesWeek')
-        setScheduleData({ ...scheduleData, times, daysOfWeek })
+        setScheduleData({ times, daysOfWeek })
         return true
       }
 
+      // Specific times every day
       if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
         const times = minute.split(',').map((min, i) => {
           const hr = hour.split(',')[i]
@@ -272,15 +286,16 @@ function App() {
         })
 
         setScheduleType('specificTimesDay')
-        setScheduleData({ ...scheduleData, times })
+        setScheduleData({ times })
         return true
       }
 
+      // Specific days of the month
       if (minute === '*' && hour === '*' && dayOfWeek === '*' && month === '*') {
         const daysOfMonth = dayOfMonth.split(',').map(Number)
 
         setScheduleType('specificDaysMonth')
-        setScheduleData({ ...scheduleData, daysOfMonth })
+        setScheduleData({ daysOfMonth })
         return true
 
       }
@@ -289,6 +304,11 @@ function App() {
 
     } catch (error) {
       console.error('Failed loading the CRON expression', error)
+
+      showAlert('Invalid CRON expression. Check the format!',
+        () => {
+          setAlert({ ...alert, visible: false })
+        })
 
       return false
     }
@@ -322,7 +342,7 @@ function App() {
 
           <Container className='mt-10'>
             <Label className='block text-gray-700 text-2xl font-bold mb-2'>Cron Expression</Label>
-            <input disabled value={cronExpression} className='w-full border rounded-xl bg-neutral-300 bg-rounded-lg text-black text-2xl text-center px-3 py-2 h-24' />
+            <textarea value={cronExpression} onChange={(e) => setCronExpression(e.target.value)} className='w-full border rounded-xl bg-neutral-300 bg-rounded-lg text-black text-2xl text-center px-3 py-2 h-24' />
           </Container>
         </Container>
 
