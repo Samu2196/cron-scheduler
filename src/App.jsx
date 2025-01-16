@@ -1,13 +1,13 @@
 import { useState } from 'react'
+import { Container, Button, Label, Alert } from './components/index'
+import { useAlert } from './hooks/useAlert'
 
-import './App.css'
+import logic from './utils/index'
 
-import Alert from './components/Alert'
-import Button from './components/Button'
-import Label from './components/Label'
-import Container from './components/Container'
+import './styles/App.css'
 
 function App() {
+  const { alert, showAlert, hideAlert } = useAlert()
   const [scheduleType, setScheduleType] = useState('')
   const [cronExpression, setCronExpression] = useState('')
   const [scheduleData, setScheduleData] = useState({
@@ -16,20 +16,6 @@ function App() {
     daysOfWeek: [],
     daysOfMonth: [],
   })
-
-  const [alert, setAlert] = useState({
-    visible: false,
-    message: '',
-    onAccept: null,
-  })
-
-  const showAlert = (message, onAccept = null) => {
-    setAlert({
-      visible: true,
-      message,
-      onAccept
-    })
-  }
 
   const renderOption = () => {
     switch (scheduleType) {
@@ -111,7 +97,7 @@ function App() {
                 if (scheduleData.times.length >= 2) {
                   return showAlert('You can select only 2 hours',
                     () => {
-                      setAlert({ ...alert, visible: false })
+                      hideAlert({ ...alert, visible: false })
                     })
                 }
                 setScheduleData({ ...scheduleData, times: [...scheduleData.times, ''] })
@@ -147,7 +133,7 @@ function App() {
 
   const handleSaveCron = () => {
     try {
-      const createdCron = createCronFromSchedule(scheduleType)
+      const createdCron = logic.createCronFromSchedule(scheduleType, scheduleData, showAlert, hideAlert, alert)
 
       setCronExpression(createdCron)
     } catch (error) {
@@ -155,7 +141,7 @@ function App() {
 
       showAlert('Failed creating the CRON expression',
         () => {
-          setAlert({ ...alert, visible: false })
+          hideAlert({ ...alert, visible: false })
         })
     }
   }
@@ -166,154 +152,26 @@ function App() {
       showAlert(
         'Please enter a CRON expression',
         () => {
-          setAlert({ ...alert, visible })
+          hideAlert({ ...alert, visible })
         })
     }
 
-    const validCron = loadCronIntoSchedule(cronExpression)
+    const validCron = logic.loadCronIntoSchedule(cronExpression, setScheduleType, setScheduleData, showAlert, hideAlert, alert)
 
     if (!validCron) {
       showAlert(
         'The CRON expression is not valid',
         () => {
-          setAlert({ ...alert, visible: false })
+          hideAlert({ ...alert, visible: false })
         })
     } else {
       showAlert(
         'The CRON expression is valid',
         () => {
-          setAlert({ ...alert, visible: false })
+          hideAlert({ ...alert, visible: false })
         })
     }
   }
-
-  const createCronFromSchedule = (type) => {
-    switch (type) {
-      case 'everyXMinutes':
-
-        return `*/${scheduleData.timeInterval} * * * *`
-
-      case 'specificTimesWeek':
-        const days = scheduleData.daysOfWeek.join(',')
-
-        if (scheduleData.daysOfWeek.length === 0) {
-          showAlert(
-            'Please select at least one day of the week',
-            () => {
-              setAlert({ ...alert, visible: false })
-            })
-
-          return '* * * * *'
-        }
-
-        return scheduleData.times.map(time => {
-          const [hour, minute] = time.split(':')
-          return `${minute} ${hour} * * ${days}`
-        }).join(',')
-
-      case 'specificTimesDay':
-        const validTimes = scheduleData.times.filter(time => time && time.includes(':'))
-
-        if (scheduleData.times.length === 0) {
-          showAlert(
-            'Please select at least one time',
-            () => {
-              setAlert({ ...alert, visible: false })
-            })
-          return '* * * * *'
-        }
-
-        const minutes = validTimes.map(time => time.split(':')[1]).join(',');
-        const hours = validTimes.map(time => time.split(':')[0]).join(',');
-
-        return `${minutes} ${hours} * * *`
-
-      case 'specificDaysMonth':
-        const daysOfMonth = scheduleData.daysOfMonth.join(',')
-
-        const validDays = daysOfMonth.split(',')
-          .map(day => Number(day))
-
-        if (validDays.every(day => day >= 1 && day <= 31)) {
-
-          return `* * ${daysOfMonth} * *`
-
-        } else {
-          showAlert(
-            'Numbers must be between 1 and 31',
-            () => {
-              setAlert({ ...alert, visible: false })
-            })
-        }
-
-      default:
-        return '* * * * *'
-    }
-  }
-
-  const loadCronIntoSchedule = (cron) => {
-    try {
-      const cronParts = cron.split(' ')
-
-      if (cronParts.length !== 5) throw new Error('CRON is not valid')
-
-      const [minute, hour, dayOfMonth, month, dayOfWeek] = cronParts
-
-      // Every X minutes
-      if (minute.startsWith('*/') && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
-        const timeInterval = parseInt(minute.replace('*/', ''), 10)
-        setScheduleType('everyXMinutes')
-        setScheduleData({ timeInterval })
-        return true
-      }
-
-      // Specific times in a week
-      if (dayOfWeek !== '*' && dayOfMonth === '*' && month === '*') {
-        const daysOfWeek = dayOfWeek.split(',').map(Number)
-
-        const times = hour.split(',').map((h, i) => `${h}:${minute.split(',')[i]}`)
-
-        setScheduleType('specificTimesWeek')
-        setScheduleData({ times, daysOfWeek })
-        return true
-      }
-
-      // Specific times every day
-      if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
-        const times = minute.split(',').map((min, i) => {
-          const hr = hour.split(',')[i]
-          return `${hr}:${min}`
-        })
-
-        setScheduleType('specificTimesDay')
-        setScheduleData({ times })
-        return true
-      }
-
-      // Specific days of the month
-      if (minute === '*' && hour === '*' && dayOfWeek === '*' && month === '*') {
-        const daysOfMonth = dayOfMonth.split(',').map(Number)
-
-        setScheduleType('specificDaysMonth')
-        setScheduleData({ daysOfMonth })
-        return true
-
-      }
-
-      return false
-
-    } catch (error) {
-      console.error('Failed loading the CRON expression', error)
-
-      showAlert('Invalid CRON expression. Check the format!',
-        () => {
-          setAlert({ ...alert, visible: false })
-        })
-
-      return false
-    }
-  }
-
 
   return (
     <>
