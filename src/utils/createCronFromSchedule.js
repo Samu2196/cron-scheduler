@@ -1,4 +1,4 @@
-const createCronFromSchedule = (type, scheduleData, showAlert, hideAlert, alert) => {
+const createCronFromSchedule = (type, scheduleData) => {
     switch (type) {
         case 'everyXMinutes':
 
@@ -7,15 +7,7 @@ const createCronFromSchedule = (type, scheduleData, showAlert, hideAlert, alert)
         case 'specificTimesWeek':
             const days = scheduleData.daysOfWeek.join(',')
 
-            if (scheduleData.daysOfWeek.length === 0) {
-                showAlert(
-                    'Please select at least one day of the week',
-                    () => {
-                        hideAlert({ ...alert, visible: false })
-                    })
-
-                return '* * * * *'
-            }
+            if (scheduleData.daysOfWeek.length === 0) throw new Error('Please select at least one day of the week')
 
             return scheduleData.times.map(time => {
                 const [hour, minute] = time.split(':')
@@ -25,14 +17,7 @@ const createCronFromSchedule = (type, scheduleData, showAlert, hideAlert, alert)
         case 'specificTimesDay':
             const validTimes = scheduleData.times.filter(time => time && time.includes(':'))
 
-            if (scheduleData.times.length === 0) {
-                showAlert(
-                    'Please select at least one time',
-                    () => {
-                        hideAlert({ ...alert, visible: false })
-                    })
-                return '* * * * *'
-            }
+            if (scheduleData.times.length === 0) throw new Error('Please select at least one time')
 
             const minutes = validTimes.map(time => time.split(':')[1]).join(',');
             const hours = validTimes.map(time => time.split(':')[0]).join(',');
@@ -45,17 +30,9 @@ const createCronFromSchedule = (type, scheduleData, showAlert, hideAlert, alert)
             const validDays = daysOfMonth.split(',')
                 .map(day => Number(day))
 
-            if (validDays.every(day => day >= 1 && day <= 31)) {
+            if (validDays.every(day => day >= 1 && day <= 31)) return `* * ${daysOfMonth} * *`
 
-                return `* * ${daysOfMonth} * *`
-
-            } else {
-                showAlert(
-                    'Numbers must be between 1 and 31',
-                    () => {
-                        hideAlert({ ...alert, visible: false })
-                    })
-            }
+            else throw new Error('Numbers must be between 1 and 31')
 
         default:
             return '* * * * *'

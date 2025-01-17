@@ -41,12 +41,12 @@ function App() {
                 <Button
                   key={index}
                   onClick={() => {
-                    const newDays = scheduleData.daysOfWeek.includes(index + 1)
+                    const newDays = (scheduleData.daysOfWeek || []).includes(index + 1)
                       ? scheduleData.daysOfWeek.filter(d => d !== index + 1)
-                      : [...scheduleData.daysOfWeek, index + 1];
+                      : [...(scheduleData.daysOfWeek || []), index + 1];
                     setScheduleData({ ...scheduleData, daysOfWeek: newDays })
                   }}
-                  className={`px-3 py-2 rounded-lg border ${scheduleData.daysOfWeek.includes(index + 1) ? 'bg-blue-500 text-white' : 'bg-neutral-300 text-black'}`}>
+                  className={`px-3 py-2 rounded-lg border ${(scheduleData.daysOfWeek || []).includes(index + 1) ? 'bg-blue-500 text-white' : 'bg-neutral-300 text-black'}`}>
                   {day}
                 </Button>
               ))}
@@ -56,7 +56,7 @@ function App() {
               <Label className='block text-gray-700 font-medium mb-2'>Hour (HH:MM):</Label>
               <input
                 type='time'
-                value={scheduleData.times[0]}
+                value={scheduleData.times}
                 onChange={(e) => {
                   const newTime = e.target.value
                   setScheduleData({ ...scheduleData, times: [newTime] })
@@ -70,21 +70,21 @@ function App() {
         return (
           <Container className='mb-4'>
             <Label className='block text-gray-700 font-medium mb-2'>Specific hours (HH:MM):</Label>
-            {scheduleData.times.map((time, index) => (
+            {(scheduleData.times || []).map((time, index) => (
               <Container key={index} className='flex intems-center mb-2'>
                 <input type='time'
                   value={time}
                   placeholder='HH:MM'
                   onChange={(e) => {
-                    const newTimes = [...scheduleData.times]
+                    const newTimes = [...(scheduleData.times || [])]
                     newTimes[index] = e.target.value
                     setScheduleData({ ...scheduleData, times: newTimes })
                   }}
                   className='w-full border text-black bg-neutral-300 rounded-lg px-3 py-2'
                 />
-                {scheduleData.times.length > 1 && <Button
+                {(scheduleData.times || []).length > 1 && <Button
                   onClick={() => {
-                    const newTimes = scheduleData.times.filter((_, i) => i !== index)
+                    const newTimes = (scheduleData.times || []).filter((_, i) => i !== index)
                     setScheduleData({ ...scheduleData, times: newTimes })
                   }}
                   className='ml-2 bg-red-500 text-white rounded-lg w-20 font-medium border border-black hover:text-red-700'
@@ -94,13 +94,13 @@ function App() {
             ))}
             <Button
               onClick={() => {
-                if (scheduleData.times.length >= 2) {
+                if ((scheduleData.times || []).length >= 2) {
                   return showAlert('You can select only 2 hours',
                     () => {
                       hideAlert({ ...alert, visible: false })
                     })
                 }
-                setScheduleData({ ...scheduleData, times: [...scheduleData.times, ''] })
+                setScheduleData({ ...scheduleData, times: [...(scheduleData.times || []), ''] })
               }}
               className='bg-blue-500 font-medium border border-black text-white px-4 py-2 rounded-lg hover:bg-blue-600'
             >
@@ -137,9 +137,9 @@ function App() {
 
       setCronExpression(createdCron)
     } catch (error) {
-      console.error(error)
+      console.error('Failed creating the CRON expression', error)
 
-      showAlert('Failed creating the CRON expression',
+      showAlert(error.message,
         () => {
           hideAlert({ ...alert, visible: false })
         })
@@ -147,26 +147,21 @@ function App() {
   }
 
   const hanleLoadCron = () => {
+    try {
+      const validCron = logic.loadCronIntoSchedule(cronExpression, setScheduleType, setScheduleData)
 
-    if (!cronExpression.trim()) {
-      showAlert(
-        'Please enter a CRON expression',
-        () => {
-          hideAlert({ ...alert, visible })
-        })
-    }
+      if (!validCron) {
+        throw new Error('The CRON expression is not valid')
+      } else {
+        showAlert('The CRON expression is valid',
+          () => {
+            hideAlert({ ...alert, visible: false })
+          })
+      }
+    } catch (error) {
+      console.error('Failed loading the CRON expression', error)
 
-    const validCron = logic.loadCronIntoSchedule(cronExpression, setScheduleType, setScheduleData, showAlert, hideAlert, alert)
-
-    if (!validCron) {
-      showAlert(
-        'The CRON expression is not valid',
-        () => {
-          hideAlert({ ...alert, visible: false })
-        })
-    } else {
-      showAlert(
-        'The CRON expression is valid',
+      showAlert('Invalid CRON expression. Check the format!',
         () => {
           hideAlert({ ...alert, visible: false })
         })
